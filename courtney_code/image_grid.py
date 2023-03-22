@@ -17,13 +17,14 @@ def determine_image(coordinates, FS):
     else:
         return "white.png"
 
-def grid(FS):
+#added gridsize, which is a tuple (x, y) for how large the grid should be
+def grid(FS, gridsize):
     images = []
-    for y in range(0, 10):
-        for x in range(0, 10):
+    for y in range(0, gridsize[1]):
+        for x in range(0, gridsize[0]):
             image = (read_image(determine_image((x, y), FS)))
             images.append(image)
     
-    Grid = make_grid(images, nrow=10, padding=25)
+    Grid = make_grid(images, nrow=gridsize[0], padding=25)
     img = torchvision.transforms.ToPILImage()(Grid)
     return img
