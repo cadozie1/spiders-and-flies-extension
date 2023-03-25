@@ -1,0 +1,11 @@
+This is my official changelog. Each edit will be properly logged here. All changes will be made in the mythras-testing-zone branch before merging. Please review accordingly
+
+-------------------------------------------------------------------------------------------------------------------------
+
+Changelog 3/25/2023:
+	- Imported random.
+	- Wrote initial random_initial_state() function.
+	- Added additional comments to randomin_initial_state().
+	- Adjusted existing comments on random_initial_state().
+	- Renamed courtney_code.py to sf_code.py to standardize the project codebase.
+	- Renamed courtney_code directory to codebase to standardize the project codebase. 
