@@ -8,4 +8,6 @@ WOLF SPIDERRRRRR
 
 🐺 🕷️ 🕸️ 🕸️ 🕸️
 
-![](https://github.com/cadozie1/spiders-and-flies-extension/blob/main/courtney_code/animation.gif)
+[Project Tasks Link](https://docs.google.com/document/d/1HA7vxDIaIeDKjaJWgApk73jEFhjrQXzXQiP5bSoLbmI/edit?usp=sharing)
+
+![](https://github.com/cadozie1/spiders-and-flies-extension/blob/main/codebase/animation.gif)
