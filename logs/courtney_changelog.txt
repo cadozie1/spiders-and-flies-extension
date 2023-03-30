@@ -1,0 +1,7 @@
+Changes made to courtneys-testing-zone will be listed here before merging:
+-------------------------------------------------------------------------------------------------------------------------
+
+Changelog 3/30/2023:
+    - updated README to include Google Drive Project Tasks Link
+    - updated README to reflect new animation.gif in codebase/
+    - 
