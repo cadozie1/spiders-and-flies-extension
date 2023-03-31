@@ -352,22 +352,22 @@ def base_policy_fly(gridsize, fly):
     for action in legal_actions(fly, gridsize):
         if action == Action.LEFT:
             #distance to left wall is the x coord
-            if (fly[0] < min_wall_distance) & (fly[0] > 0) & (fly[0] < gridsize[0] / 2 + 1):
+            if (fly[0] < min_wall_distance) & (fly[0] > 0) & (fly[0] < gridsize[0] // 2 + 1):
                 min_wall_distance = fly[0]
                 best_action = action
         elif action == Action.RIGHT:
             distance_to_right_wall = gridsize[0] - 1 - fly[0]
-            if (distance_to_right_wall < min_wall_distance) & (distance_to_right_wall > 0) & (distance_to_right_wall < gridsize[0] / 2 + 1):
+            if (distance_to_right_wall < min_wall_distance) & (distance_to_right_wall > 0) & (distance_to_right_wall < gridsize[0] // 2 + 1):
                 min_wall_distance = distance_to_right_wall
                 best_action = action
         elif action == Action.UP:
             #distance to upper wall is the y coord
-            if (fly[1] < min_wall_distance) & (fly[1] > 0) & (fly[1] < gridsize[1] / 2 + 1):
+            if (fly[1] < min_wall_distance) & (fly[1] > 0) & (fly[1] < gridsize[1] // 2 + 1):
                 min_wall_distance = fly[1]
                 best_action = action
         elif action == Action.DOWN:
             distance_to_bottom_wall = gridsize[1] - 1 - fly[1]
-            if (distance_to_bottom_wall < min_wall_distance) & (distance_to_bottom_wall > 0) & (distance_to_bottom_wall < gridsize[1] / 2 + 1):
+            if (distance_to_bottom_wall < min_wall_distance) & (distance_to_bottom_wall > 0) & (distance_to_bottom_wall < gridsize[1] // 2 + 1):
                 min_wall_distance = distance_to_bottom_wall
                 best_action = action
 
