@@ -60,53 +60,67 @@ def manhattan_distance(coordinates1, coordinates2):
 def manhattan_x(coordinates1, coordinates2):
     return abs(coordinates1[0]-coordinates2[0])
 
-#a function that moves a given spider at a given spiderIndex by a certain action and updates the FS gamestate
-def move_spider(FS, action, spiderIndex):
+#a function that moves a given spider/fly at a given index by a certain action and updates the FS gamestate
+# isASpider: True -> move a spider; False -> move a fly
+def move(FS, action, isASpider, index):
     new_FS = []
-    new_FS.append(list(FS[0])) #keep flies same
-    new_spiders = list(FS[1]) #start with same spiders, but going to change one
+    moving_list = [] #the list of spiders/flies for the spider/fly we're moving
+    if isASpider == True:
+        new_FS.append(list(FS[0])) #keep flies same if we're just moving a spider
+        moving_list = list(FS[1]) #start with same spiders, but going to change one
+    else:
+        moving_list = list(FS[0]) # start with same flies, but going to change one
+
 
     #assume we check for or know legality of action before calling this function :)
     if (action == Action.UP):
-        old_coords = new_spiders[spiderIndex]
+        old_coords = moving_list[index]
         new_coords = (old_coords[0], old_coords[1] - 1)
     elif (action == Action.DOWN):
-        old_coords = new_spiders[spiderIndex]
+        old_coords = moving_list[index]
         new_coords = (old_coords[0], old_coords[1] + 1)
     elif (action == Action.LEFT):
-        old_coords = new_spiders[spiderIndex]
+        old_coords = moving_list[index]
         new_coords = (old_coords[0] - 1, old_coords[1])
     elif (action == Action.RIGHT):
-        old_coords = new_spiders[spiderIndex]
+        old_coords = moving_list[index]
         new_coords = (old_coords[0] + 1, old_coords[1])
     elif (action == Action.STILL):
-        new_coords = new_spiders[spiderIndex]
+        new_coords = moving_list[index]
 
-    new_spiders[spiderIndex] = new_coords
+    moving_list[index] = new_coords
 
-    new_FS.append(new_spiders)
+    new_FS.append(moving_list)
 
-    #if spider eats a fly, get rid of fly
-    for fly in FS[0]:
-        if new_coords == fly:
-            new_FS[0].remove(fly)
+    if isASpider == False:
+        new_FS.append(list(FS[1])) #keep spiders same if we're just moving a fly
+        #if spider eats a fly, get rid of fly
+        for spider in FS[1]:
+            if new_coords == spider:
+                new_FS[0].remove(new_coords)
+
+    else:
+        #if spider eats a fly, get rid of fly
+        for fly in FS[0]:
+            if new_coords == fly:
+                new_FS[0].remove(fly)
 
     return new_FS
 
 #a function that determines and prioritizes the legal actions for a given spider at specified coordinates
-def legal_actions(spider_coords, gridsize):
-    spider_x, spider_y = spider_coords
+def legal_actions(coords, gridsize):
+    x, y = coords
     legals = []
     #give preference to still, then horizontal actions, then vertical in list of actions
     # (as tiebreakers will be given to first action in the list and we'd rather the spiders move as minimal as possible - more still actions)
     legals.append(Action.STILL)
-    if spider_x > 0:
+    if x > 0:
         legals.append(Action.LEFT)
-    if spider_x < gridsize[0]-1:
+    if x < gridsize[0]-1:
         legals.append(Action.RIGHT)
-    if spider_y > 0:
+    if y > 0:
         legals.append(Action.UP)
-    if spider_y < gridsize[1]-1:
+    if y < gridsize[1]-1:
         legals.append(Action.DOWN)
 
     return legals
@@ -147,30 +161,34 @@ def base_policy_spider(FS, gridsize, spiderIndex):
     
     
 #a function that returns the updated list of gamestates FS_list and number of moves thus far that have been done for the base policy, adding on one move for each spider to the list
-def base_policy(FS_list, gridsize, num_moves):
+def base_policy(FS_list, gridsize, num_moves, flyPolicyType):
     current_FS = FS_list[len(FS_list)-1]
 
     spider_0_action = base_policy_spider(current_FS, gridsize, 0)
     spider_1_action = base_policy_spider(current_FS, gridsize, 1)
     if spider_0_action != None:
-        new_FS = move_spider(current_FS, spider_0_action, 0)   
+        new_FS = move(current_FS, spider_0_action, True, 0)   
         if spider_1_action != None:
 
-            new_FS_2 = move_spider(new_FS, spider_1_action, 1)
-            FS_list.append(new_FS_2)
+            new_FS_2 = move(new_FS, spider_1_action, True, 1)
+
+            # move the flies
+            new_FS_3 = move_flies(new_FS_2, gridsize, flyPolicyType)
+            FS_list.append(new_FS_3)
              
             #keep going as the spiders still have flies left to eat
-            return base_policy(FS_list, gridsize, num_moves+2)
+            return base_policy(FS_list, gridsize, num_moves+2, flyPolicyType)
         else:
-            #append new FS state from actions done by spiders
-            FS_list.append(new_FS)
+            #append new FS state from actions done by spiders with the moves from the flies
+            new_FS_2 = move_flies(new_FS, gridsize, flyPolicyType)
+            FS_list.append(new_FS_2)
             return (FS_list, num_moves+1)
     else:
         return (FS_list, num_moves)
 
 
 #a function that returns the updated list of gamestates FS_list and number of moves thus far that have been done for the ordinary rollout policy, adding on one move for each spider to the list
-def ordinary_rollout(FS_list, gridsize, num_moves):
+def ordinary_rollout(FS_list, gridsize, num_moves, flyPolicyType):
     current_FS = FS_list[len(FS_list)-1]
     flies, spiders = current_FS
 
@@ -183,23 +201,25 @@ def ordinary_rollout(FS_list, gridsize, num_moves):
     for a0 in legal_actions(spiders[0], gridsize):
         for a1 in legal_actions(spiders[1], gridsize):
             #determine world state
-            new_fs = move_spider(current_FS, a0, 0)
-            new_fs2 = move_spider(new_fs, a1, 1)
+            new_fs = move(current_FS, a0, True, 0)
+            new_fs2 = move(new_fs, a1, True, 1)
 
             #create new FS list just to test base policy
             new_fs_list = FS_list.copy()
             new_fs_list.append(new_fs2)
             #find heuristic #moves 
-            bp_fs_list, bp_num_moves = base_policy(new_fs_list, gridsize, num_moves+2)
+            bp_fs_list, bp_num_moves = base_policy(new_fs_list, gridsize, num_moves+2, flyPolicyType)
             if bp_num_moves < best_num_moves:
                 best_num_moves = bp_num_moves
                 best_new_fs = new_fs2
-    FS_list.append(best_new_fs)
-    return ordinary_rollout(FS_list, gridsize, num_moves+2)
+    #move flies from best_new_fs
+    best_new_fs_moved = move_flies(best_new_fs, gridsize, flyPolicyType)
+    FS_list.append(best_new_fs_moved)
+    return ordinary_rollout(FS_list, gridsize, num_moves+2, flyPolicyType)
 
 
 #a function that returns the updated list of gamestates FS_list and number of moves thus far that have been done for the mulitagent rollout policy, adding on one move for each spider to the list
-def multiagent_rollout(FS_list, gridsize, num_moves):
+def multiagent_rollout(FS_list, gridsize, num_moves, flyPolicyType):
     current_FS = FS_list[len(FS_list)-1]
     flies, spiders = current_FS
 
@@ -208,20 +228,20 @@ def multiagent_rollout(FS_list, gridsize, num_moves):
     best_new_fs = None
     best_num_moves = float("inf")
     for a0 in legal_actions(spiders[0], gridsize):
-        new_fs = move_spider(current_FS, a0, 0)
+        new_fs = move(current_FS, a0, True, 0)
         spider1_expected = base_policy_spider(new_fs, gridsize, 1)
 
         #create new FS_list to test base policy
         new_fs_list = FS_list.copy()
 
         if spider1_expected != None:
-            new_fs2 = move_spider(new_fs, spider1_expected, 1)
+            new_fs2 = move(new_fs, spider1_expected, True, 1)
         
             new_fs_list.append(new_fs2)
-            bp_fs_list, bp_num_moves = base_policy(new_fs_list, gridsize, num_moves+2)
+            bp_fs_list, bp_num_moves = base_policy(new_fs_list, gridsize, num_moves+2, flyPolicyType)
         else:
             new_fs_list.append(new_fs)
-            bp_fs_list, bp_num_moves = base_policy(new_fs_list, gridsize, num_moves+1)
+            bp_fs_list, bp_num_moves = base_policy(new_fs_list, gridsize, num_moves+1, flyPolicyType)
         #find heuristic #moves
         if bp_num_moves < best_num_moves:
             best_num_moves = bp_num_moves
@@ -229,25 +249,29 @@ def multiagent_rollout(FS_list, gridsize, num_moves):
 
     #if the flies are now 0 before spider 1 moves
     if len(best_new_fs[0]) == 0: 
-        FS_list.append(best_new_fs)
+        #move flies from best_new_fs
+        best_new_fs_moved = move_flies(best_new_fs, gridsize, flyPolicyType)
+        FS_list.append(best_new_fs_moved)
         return (FS_list, num_moves+1)
     best_new_fs2 = None
     best_num_moves = float("inf")
     for a1 in legal_actions(spiders[1], gridsize):
         #assume spider0 did best move in best_new_fs & move on from there
-        new_fs2 = move_spider(best_new_fs, a1, 1)
+        new_fs2 = move(best_new_fs, a1, True, 1)
         
         #create new FS list to test base policy
         new_fs_list = FS_list.copy()
         new_fs_list.append(new_fs2)
         #find heuristic #moves
-        bp_fs_list, bp_num_moves = base_policy(new_fs_list, gridsize, num_moves+2)
+        bp_fs_list, bp_num_moves = base_policy(new_fs_list, gridsize, num_moves+2, flyPolicyType)
         if bp_num_moves < best_num_moves:
             best_num_moves = bp_num_moves
             best_new_fs2 = new_fs2
 
-    FS_list.append(best_new_fs2)
-    return multiagent_rollout(FS_list, gridsize, num_moves+2)
+    #move flies from best_new_fs_2
+    best_new_fs2_moved = move_flies(best_new_fs2, gridsize, flyPolicyType)
+    FS_list.append(best_new_fs2_moved)
+    return multiagent_rollout(FS_list, gridsize, num_moves+2, flyPolicyType)
 
 #method to read in an initial state
 #example commandline: python courtney_code.py --DP_type 2 --output_type 0 --init_type 1 --init_filename sample_init_state.txt
@@ -309,6 +333,85 @@ def random_initial_state(gridsize, spiders, flies):
     return (flies_init, spiders_init)
 
 
+#FLY MOVING/INTELLIGENCE
+
+#funciton that determines & returns the move for a fly to go to the nearest wall
+#if in a corner, the chosen move is to stay still (can change this later if we choose)
+def base_policy_fly(gridsize, fly):
+    #if in corner, stay still
+    if (fly == (0, 0)) | (fly == (gridsize[0]-1, 0)) | (fly == (0, gridsize[1]-1)) | (fly == (gridsize[0]-1, gridsize[1]-1)):
+        return Action.STILL
+
+    #get legal actions
+
+    best_action = None
+    min_wall_distance = max(gridsize[0], gridsize[1])+1
+
+    #out of legal actions, check to see if each wall is the best & find best action
+    for action in legal_actions(fly, gridsize):
+        if action == Action.LEFT:
+            #distance to left wall is the x coord
+            if fly[0] < min_wall_distance:
+                min_wall_distance = fly[0]
+                best_action = action
+            elif (fly[0] == 0) & (fly[0] == min_wall_distance):
+                min_wall_distance = fly[0]
+                best_action = action
+        elif action == Action.RIGHT:
+            distance_to_right_wall = gridsize[0] - 1 - fly[0]
+            if distance_to_right_wall < min_wall_distance:
+                min_wall_distance = distance_to_right_wall
+                best_action = action
+            elif (distance_to_right_wall == 0) & (distance_to_right_wall == min_wall_distance):
+                min_wall_distance = distance_to_right_wall
+                best_action = action
+        elif action == Action.UP:
+            #distance to upper wall is the y coord
+            if fly[1] < min_wall_distance:
+                min_wall_distance = fly[1]
+                best_action = action
+            elif (fly[1] == 0) & (fly[1] == min_wall_distance):
+                min_wall_distance = fly[1]
+                best_action = action
+        elif action == Action.DOWN:
+            distance_to_bottom_wall = gridsize[1] - 1 - fly[1]
+            if distance_to_bottom_wall < min_wall_distance:
+                min_wall_distance = distance_to_bottom_wall
+                best_action = action
+            elif (distance_to_bottom_wall == 0) & (distance_to_bottom_wall == min_wall_distance):
+                min_wall_distance = distance_to_bottom_wall
+                best_action = action
+
+    return best_action
+
+
+#function to determine moves based on a specified policy & move the fliessssss BZZZZZZZZZZZZZZZZZZZz
+# flyPolicyType: move flies (0) not at all (1) toward nearest wall - base policy 
+# will likely add more flyPolicyTypes if we want fancier fly intelligence
+def move_flies(FS, gridsize, flyPolicyType):
+    #if the flies don't move or aren't there anymore, just return the game state FS as is
+    if (flyPolicyType == 0) | (len(FS[0]) == 0):
+        return FS
+
+    #add all fly moves based on base policy to a new gamestate FS & return that
+    new_FS = FS
+    #if a fly runs into a spider, the indexes will change, so check for that
+    original_fly_length = len(FS[0])
+    flyIndex = 0
+    while flyIndex < len(new_FS[0]):
+        fly_move = base_policy_fly(gridsize, new_FS[0][flyIndex])
+        new_FS = move(new_FS, fly_move, False, flyIndex)
+        if len(new_FS[0]) < original_fly_length:
+            difference = original_fly_length - len(new_FS[0])
+            original_fly_length = len(new_FS[0])
+            flyIndex -= difference
+
+        flyIndex += 1
+
+    
+    return new_FS
+
+
 
 #the main function where all of the commandline arguments are parsed, the game is initialized, and the specified policy is executed with the given output type
 def main():
@@ -325,6 +428,7 @@ def main():
     parser.add_argument('--init_filename', type=str, required=False, help='If an initial state is specified, read the initial state from this file')
     parser.add_argument('--spiders', type=int, required=False, help='For a random initial state, how many spiders should be on the board?', default=2)
     parser.add_argument('--flies', type=int, required=False, help='For a random initial state, how many flies should be on the board?', default=5)
+    parser.add_argument('--fly_policy_type', type=int, required=False, help='How the flies should move (0) no movement (1) move towards the nearest wall/corner', default=0)
 
     args = parser.parse_args()
 
@@ -333,6 +437,8 @@ def main():
         gridsize = (args.gridxy, args.gridxy)
     else:
         gridsize = (args.gridx, args.gridy)
+
+    flyPolicyType = args.fly_policy_type
 
     #determine initial state
     random.seed()
@@ -352,13 +458,13 @@ def main():
 
     match args.DP_type:
         case 0: 
-            FS_list, num_moves = base_policy(FS_list, gridsize, 0)
+            FS_list, num_moves = base_policy(FS_list, gridsize, 0, flyPolicyType)
             print("--------------------Base Policy w/ Manhattan Heuristic--------------------")
         case 1: 
-            FS_list, num_moves = ordinary_rollout(FS_list, gridsize, 0)
+            FS_list, num_moves = ordinary_rollout(FS_list, gridsize, 0, flyPolicyType)
             print("-----------Ordinary Rollout w/ Manhattan Heuristic One Lookahead-----------")
         case 2: 
-            FS_list, num_moves = multiagent_rollout(FS_list, gridsize, 0)
+            FS_list, num_moves = multiagent_rollout(FS_list, gridsize, 0, flyPolicyType)
             print("----------Multiagent Rollout w/ Manhattan Heuristic One Lookahead----------")
 
     match args.output_type:

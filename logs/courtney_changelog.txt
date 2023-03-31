@@ -1,7 +1,13 @@
-Changes made to courtneys-testing-zone will be listed here before merging:
+Changes made to courtneys-testing-zone will be listed here before merging to main:
 -------------------------------------------------------------------------------------------------------------------------
 
 Changelog 3/30/2023:
     - updated README to include Google Drive Project Tasks Link
     - updated README to reflect new animation.gif in codebase/
-    - 
+    - updated move_spider() function to be a fly/spider move() function based on fly/spider index
+    - changed every instance of move_spider() to become move() with additional 'True' parameter of whether it is a spider
+    - updated legal_actions() function names from spider_coords to just coords for implementation with flies
+    - added move_flies() function that will move all of the flies based on what kind of policy type (0 for not moving, 1 for base policy heading to nearest wall) to move by
+    - added base_policy_fly() function to determine the best action based on the nearest wall for the fly to move to
+    - added move_flies() to base_policy(), ordinary_rollout(), multiagent_rollout(), and updated those functions to have flyPolicyType for what policy the flies are supposed to move by
+    - added a commandline argument --fly_policy_type (0) for no movement (1) for running toward the nearest wall/staying in a corner, default 0
