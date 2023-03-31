@@ -98,6 +98,7 @@ def move(FS, action, isASpider, index):
         for spider in FS[1]:
             if new_coords == spider:
                 new_FS[0].remove(new_coords)
+                break #in case more than one spider is in the square
 
     else:
         #if spider eats a fly, get rid of fly
