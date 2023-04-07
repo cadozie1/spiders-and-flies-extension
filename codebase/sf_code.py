@@ -105,6 +105,7 @@ def move(FS, action, isASpider, index):
         for fly in FS[0]:
             if new_coords == fly:
                 new_FS[0].remove(fly)
+                break
 
     return new_FS
 
@@ -160,32 +161,78 @@ def base_policy_spider(FS, gridsize, spiderIndex):
             best_action = Action.DOWN
     return best_action 
     
+
     
 #a function that returns the updated list of gamestates FS_list and number of moves thus far that have been done for the base policy, adding on one move for each spider to the list
 def base_policy(FS_list, gridsize, num_moves, flyPolicyType):
     current_FS = FS_list[len(FS_list)-1]
-
-    spider_0_action = base_policy_spider(current_FS, gridsize, 0)
-    spider_1_action = base_policy_spider(current_FS, gridsize, 1)
-    if spider_0_action != None:
-        new_FS = move(current_FS, spider_0_action, True, 0)   
-        if spider_1_action != None:
-
-            new_FS_2 = move(new_FS, spider_1_action, True, 1)
-
-            # move the flies
-            new_FS_3 = move_flies(new_FS_2, gridsize, flyPolicyType)
-            FS_list.append(new_FS_3)
-             
-            #keep going as the spiders still have flies left to eat
-            return base_policy(FS_list, gridsize, num_moves+2, flyPolicyType)
+    spider_actions = []
+    new_FS = current_FS
+    
+    #move each spider individually until either 1) all flies are eaten where we return the current FS_list or 2) all spiders have moved
+    for spiderIndex in range(0, len(current_FS[1])):
+        spider_action = base_policy_spider(current_FS, gridsize, spiderIndex)
+        if spider_action != None:
+            new_FS = move(new_FS, spider_action, True, spiderIndex)
+            spider_actions.append(spider_action)
         else:
-            #append new FS state from actions done by spiders with the moves from the flies
-            new_FS_2 = move_flies(new_FS, gridsize, flyPolicyType)
-            FS_list.append(new_FS_2)
-            return (FS_list, num_moves+1)
-    else:
-        return (FS_list, num_moves)
+            #if we're not starting with no flies, then we have terminated by moving a spider to eat a fly,
+            #so we need to note what spider(s) moved by updating the game state
+            if new_FS != current_FS:
+                FS_list.append(new_FS)
+
+            #we have terminated before all spiders have moved, so add the number of spiders that have moved to the num_moves
+            return (FS_list, num_moves+spiderIndex)
+
+        
+    #if we still have flies by the end of the spiders' turn, calculate the next moves for the flies and then spiders, etc.
+
+    new_FS_2 = move_flies(new_FS, gridsize, flyPolicyType)
+    FS_list.append(new_FS_2)
+    return base_policy(FS_list, gridsize, num_moves+len(current_FS[1]), flyPolicyType)
+     
+#function that acts as recursive nested for loops that determines the best FS based on the base policy
+# and returns that new best FS to the ordinary_rollout function
+def ordinary_rollout_best_FS(FS_list, gridsize, action_list, num_moves, spiderIndex, flyPolicyType):
+    current_FS = FS_list[len(FS_list)-1]
+    best_new_fs = None
+    best_num_moves = float("inf")
+    for action in legal_actions(current_FS[1][spiderIndex], gridsize):
+        #add the action for this spider to the list
+        new_action_list = action_list.copy()
+        new_action_list.append(action)
+
+        #if we're at the end then we are in the innermost for loop, now we need to move the spiders and compare values
+        if spiderIndex ==len(current_FS[1])-1:
+            new_FS = current_FS
+            for i in range(0, len(new_action_list)):
+                new_FS = move(new_FS, new_action_list[i], True, i)
+
+            #at end we need to make the flies move
+            new_FS = move_flies(new_FS, gridsize, flyPolicyType)
+
+            #create new FS list just to test base policy
+            new_fs_list = FS_list.copy()
+            new_fs_list.append(new_FS)
+            #find heuristic #moves 
+            bp_fs_list, bp_num_moves = base_policy(new_fs_list, gridsize, num_moves+len(current_FS[1]), flyPolicyType)
+            if bp_num_moves < best_num_moves:
+                best_num_moves = bp_num_moves
+                best_new_fs = new_FS
+
+        elif spiderIndex < len(current_FS[1])-1:
+            new_action_list = action_list.copy()
+            new_action_list.append(action)
+            new_FS, new_num_moves = ordinary_rollout_best_FS(FS_list, gridsize, new_action_list, num_moves, spiderIndex+1, flyPolicyType)
+            if new_num_moves < best_num_moves:
+                best_num_moves = new_num_moves
+                best_new_fs = new_FS
+        else:
+            print("ERROR: INDEX OUT OF BOUNDS FOR ORDINARY ROLLOUT")
+    if best_new_fs == None:
+        best_num_moves = float("inf")
+
+    return best_new_fs, best_num_moves
 
 
 #a function that returns the updated list of gamestates FS_list and number of moves thus far that have been done for the ordinary rollout policy, adding on one move for each spider to the list
@@ -193,31 +240,20 @@ def ordinary_rollout(FS_list, gridsize, num_moves, flyPolicyType):
     current_FS = FS_list[len(FS_list)-1]
     flies, spiders = current_FS
 
+    #if there are no flies left, we're done, so terminate
 
     if len(flies) == 0: return FS_list, num_moves
 
-    best_new_fs = None
-    best_num_moves = float("inf")
-    #try all action combos, find heuristic to see #moves afterward, then choose minimum action
-    for a0 in legal_actions(spiders[0], gridsize):
-        for a1 in legal_actions(spiders[1], gridsize):
-            #determine world state
-            new_fs = move(current_FS, a0, True, 0)
-            new_fs2 = move(new_fs, a1, True, 1)
+    #determine best actions to take and the new FS gamestate for that
+    best_new_fs, best_num_moves = ordinary_rollout_best_FS(FS_list, gridsize, [], num_moves, 0, flyPolicyType)
+    #if the new FS for some reason is None, then it wasn't good enough so just return the number of moves as infinity
+    if best_new_fs == None:
+        return FS_list, float("inf")
 
-            #create new FS list just to test base policy
-            new_fs_list = FS_list.copy()
-            new_fs_list.append(new_fs2)
-            #find heuristic #moves 
-            bp_fs_list, bp_num_moves = base_policy(new_fs_list, gridsize, num_moves+2, flyPolicyType)
-            if bp_num_moves < best_num_moves:
-                best_num_moves = bp_num_moves
-                best_new_fs = new_fs2
-    #move flies from best_new_fs
-    best_new_fs_moved = move_flies(best_new_fs, gridsize, flyPolicyType)
-    FS_list.append(best_new_fs_moved)
-    return ordinary_rollout(FS_list, gridsize, num_moves+2, flyPolicyType)
-
+    #append the new FS
+    FS_list.append(best_new_fs)
+    #continue rollout since we have more flies to catch
+    return ordinary_rollout(FS_list, gridsize, num_moves+len(current_FS[1]), flyPolicyType)
 
 #a function that returns the updated list of gamestates FS_list and number of moves thus far that have been done for the mulitagent rollout policy, adding on one move for each spider to the list
 def multiagent_rollout(FS_list, gridsize, num_moves, flyPolicyType):
@@ -226,53 +262,107 @@ def multiagent_rollout(FS_list, gridsize, num_moves, flyPolicyType):
 
     if len(flies) == 0: return (FS_list, num_moves)
 
-    best_new_fs = None
-    best_num_moves = float("inf")
-    for a0 in legal_actions(spiders[0], gridsize):
-        new_fs = move(current_FS, a0, True, 0)
-        spider1_expected = base_policy_spider(new_fs, gridsize, 1)
+    starting_fs = current_FS
 
-        #create new FS_list to test base policy
-        new_fs_list = FS_list.copy()
+    for spiderIndex in range(0, len(current_FS[1])):
+        best_new_fs = None
+        best_num_moves = float("inf")
 
-        if spider1_expected != None:
-            new_fs2 = move(new_fs, spider1_expected, True, 1)
-        
-            new_fs_list.append(new_fs2)
-            bp_fs_list, bp_num_moves = base_policy(new_fs_list, gridsize, num_moves+2, flyPolicyType)
+
+        for action in legal_actions(spiders[spiderIndex], gridsize):
+            new_fs = move(starting_fs, action, True, spiderIndex)
+            new_fs_2 = new_fs
+            #create new FS_list to test base policy
+            new_fs_list = FS_list.copy()
+
+
+            num_spiders_moved = 1+spiderIndex
+            #make a list of the base policy for rest of spiders to see how that would play out
+            for spiderIndex2 in range(spiderIndex+1, len(starting_fs[1])):
+                next_spider_expected = base_policy_spider(new_fs_2, gridsize, spiderIndex2)
+
+                if next_spider_expected != None:
+                    new_fs_3 = move(new_fs_2, next_spider_expected, True, spiderIndex2)
+                    if spiderIndex2 == len(starting_fs[1]) - 1:
+                        new_fs_list.append(new_fs_3)
+                    new_fs_2 = new_fs_3
+                    num_spiders_moved += 1 #another spider has an action that isn't None, so it moved
+                else:
+                    new_fs_list.append(new_fs_2)
+                    break
+
+            if spiderIndex == len(starting_fs[1]) - 1:
+                new_fs_list.append(new_fs)
+
+            bp_fs_list, bp_num_moves = base_policy(new_fs_list, gridsize, num_moves+num_spiders_moved, flyPolicyType)
+            #find heuristic #moves
+            if bp_num_moves < best_num_moves:
+                best_num_moves = bp_num_moves
+                best_new_fs = new_fs
+            
+        #if the flies are now 0 before next spider moves
+        if len(best_new_fs[0]) == 0: 
+            #move flies from best_new_fs
+            best_new_fs_moved = move_flies(best_new_fs, gridsize, flyPolicyType)
+            FS_list.append(best_new_fs_moved)
+            return (FS_list, num_moves+spiderIndex +1)
+        elif spiderIndex == len(current_FS[1]) -1:
+            best_new_fs_moved = move_flies(best_new_fs, gridsize, flyPolicyType)
+            FS_list.append(best_new_fs_moved)
+            return multiagent_rollout(FS_list, gridsize, num_moves+len(current_FS[1]), flyPolicyType)
         else:
-            new_fs_list.append(new_fs)
-            bp_fs_list, bp_num_moves = base_policy(new_fs_list, gridsize, num_moves+1, flyPolicyType)
-        #find heuristic #moves
-        if bp_num_moves < best_num_moves:
-            best_num_moves = bp_num_moves
-            best_new_fs = new_fs
+            starting_fs = best_new_fs
 
-    #if the flies are now 0 before spider 1 moves
-    if len(best_new_fs[0]) == 0: 
-        #move flies from best_new_fs
-        best_new_fs_moved = move_flies(best_new_fs, gridsize, flyPolicyType)
-        FS_list.append(best_new_fs_moved)
-        return (FS_list, num_moves+1)
-    best_new_fs2 = None
-    best_num_moves = float("inf")
-    for a1 in legal_actions(spiders[1], gridsize):
-        #assume spider0 did best move in best_new_fs & move on from there
-        new_fs2 = move(best_new_fs, a1, True, 1)
-        
-        #create new FS list to test base policy
-        new_fs_list = FS_list.copy()
-        new_fs_list.append(new_fs2)
-        #find heuristic #moves
-        bp_fs_list, bp_num_moves = base_policy(new_fs_list, gridsize, num_moves+2, flyPolicyType)
-        if bp_num_moves < best_num_moves:
-            best_num_moves = bp_num_moves
-            best_new_fs2 = new_fs2
 
-    #move flies from best_new_fs_2
-    best_new_fs2_moved = move_flies(best_new_fs2, gridsize, flyPolicyType)
-    FS_list.append(best_new_fs2_moved)
-    return multiagent_rollout(FS_list, gridsize, num_moves+2, flyPolicyType)
+
+
+
+
+    #for a0 in legal_actions(spiders[0], gridsize):
+    #    new_fs = move(current_FS, a0, True, 0)
+    #    spider1_expected = base_policy_spider(new_fs, gridsize, 1)
+
+    #    #create new FS_list to test base policy
+    #    new_fs_list = FS_list.copy()
+
+    #    if spider1_expected != None:
+    #        new_fs2 = move(new_fs, spider1_expected, True, 1)
+    #    
+    #        new_fs_list.append(new_fs2)
+    #        bp_fs_list, bp_num_moves = base_policy(new_fs_list, gridsize, num_moves+2, flyPolicyType)
+    #    else:
+    #        new_fs_list.append(new_fs)
+    #        bp_fs_list, bp_num_moves = base_policy(new_fs_list, gridsize, num_moves+1, flyPolicyType)
+    #    #find heuristic #moves
+    #    if bp_num_moves < best_num_moves:
+    #        best_num_moves = bp_num_moves
+    #        best_new_fs = new_fs
+
+    ##if the flies are now 0 before spider 1 moves
+    #if len(best_new_fs[0]) == 0: 
+    #    #move flies from best_new_fs
+    #    best_new_fs_moved = move_flies(best_new_fs, gridsize, flyPolicyType)
+    #    FS_list.append(best_new_fs_moved)
+    #    return (FS_list, num_moves+1)
+    #best_new_fs2 = None
+    #best_num_moves = float("inf")
+    #for a1 in legal_actions(spiders[1], gridsize):
+    #    #assume spider0 did best move in best_new_fs & move on from there
+    #    new_fs2 = move(best_new_fs, a1, True, 1)
+    #    
+    #    #create new FS list to test base policy
+    #    new_fs_list = FS_list.copy()
+    #    new_fs_list.append(new_fs2)
+    #    #find heuristic #moves
+    #    bp_fs_list, bp_num_moves = base_policy(new_fs_list, gridsize, num_moves+2, flyPolicyType)
+    #    if bp_num_moves < best_num_moves:
+    #        best_num_moves = bp_num_moves
+    #        best_new_fs2 = new_fs2
+
+    ##move flies from best_new_fs_2
+    #best_new_fs2_moved = move_flies(best_new_fs2, gridsize, flyPolicyType)
+    #FS_list.append(best_new_fs2_moved)
+    #return multiagent_rollout(FS_list, gridsize, num_moves+2, flyPolicyType)
 
 #method to read in an initial state
 #example commandline: python courtney_code.py --DP_type 2 --output_type 0 --init_type 1 --init_filename sample_init_state.txt

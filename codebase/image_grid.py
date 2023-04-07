@@ -8,8 +8,11 @@ def determine_image(coordinates, FS):
     spiders = FS[1]
 
     if coordinates in spiders:
-        if (spiders[0] == spiders[1]):
-            return "spider2.png"
+        #if there are more than one spider, return a duplicate image if they are in the same square
+        if len(spiders) > 1:
+            for s1 in spiders:
+                if s2 == s1:
+                    return "spider2.png"
         else:
             return "spider.png"
     elif coordinates in flies:
