@@ -11,3 +11,11 @@ Changelog 3/30/2023:
     - added base_policy_fly() function to determine the best action based on the nearest wall for the fly to move to
     - added move_flies() to base_policy(), ordinary_rollout(), multiagent_rollout(), and updated those functions to have flyPolicyType for what policy the flies are supposed to move by
     - added a commandline argument --fly_policy_type (0) for no movement (1) for running toward the nearest wall/staying in a corner, default 0
+
+
+Changelog 4/5/2023-4/6/2023 (increasing # of spiders):
+    - updated base_policy function to process any number of spiders based on the length of spiders in the most recent game state (will work even if spiders can die)
+    - added ordinary_rollout_best_FS function that recursively performs the nested for loop part of ordinary rollout to find the best FS given the heursitic (base policy) and returns that best FS to the ordinary_rollout function, which then either terminates or continues rollout for the next game state
+    - updated ordinary_rollout to remove nested for loops & call recursive function ordinary_rollout_best_FS instead
+    - updated multiagent_rollout to include a for loop for each spider & run each one after the other
+    - updated image_grid.py to check duplicates based on the spiders length so we can also run with only 1 spider :)
