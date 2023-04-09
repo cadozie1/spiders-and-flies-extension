@@ -19,3 +19,12 @@ Changelog 4/5/2023-4/6/2023 (increasing # of spiders):
     - updated ordinary_rollout to remove nested for loops & call recursive function ordinary_rollout_best_FS instead
     - updated multiagent_rollout to include a for loop for each spider & run each one after the other
     - updated image_grid.py to check duplicates based on the spiders length so we can also run with only 1 spider :)
+
+Changelog 4/8/2023 (adding rollout for fly to escape spiders):
+    - added third and fourth fly policy types: avoid policy (avoid the spiders) with flyPolicyType 2, and rollout with flyPolicyType 3 - modified move_flies and added argument help for those value
+    - added avoid_policy_fly() function that determines what move is best for avoiding landing on a spider
+    - added rollout_fly() function that uses the avoid_policy_fly as its base policy & performs rollout on that
+    - modified base_policy_fly to be written a little less weird/redundant
+    - fixed image_grid.py because I forgot a second loop when fixing it
+    - added an initialization of new_coords in the move() function since it was causing an error
+    - deleted extra comments of old, hardencoded code for 2 spiders that I had accidentally left

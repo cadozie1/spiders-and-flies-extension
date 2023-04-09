@@ -71,7 +71,6 @@ def move(FS, action, isASpider, index):
     else:
         moving_list = list(FS[0]) # start with same flies, but going to change one
 
-
     #assume we check for or know legality of action before calling this function :)
     if (action == Action.UP):
         old_coords = moving_list[index]
@@ -318,51 +317,6 @@ def multiagent_rollout(FS_list, gridsize, num_moves, flyPolicyType):
 
 
 
-    #for a0 in legal_actions(spiders[0], gridsize):
-    #    new_fs = move(current_FS, a0, True, 0)
-    #    spider1_expected = base_policy_spider(new_fs, gridsize, 1)
-
-    #    #create new FS_list to test base policy
-    #    new_fs_list = FS_list.copy()
-
-    #    if spider1_expected != None:
-    #        new_fs2 = move(new_fs, spider1_expected, True, 1)
-    #    
-    #        new_fs_list.append(new_fs2)
-    #        bp_fs_list, bp_num_moves = base_policy(new_fs_list, gridsize, num_moves+2, flyPolicyType)
-    #    else:
-    #        new_fs_list.append(new_fs)
-    #        bp_fs_list, bp_num_moves = base_policy(new_fs_list, gridsize, num_moves+1, flyPolicyType)
-    #    #find heuristic #moves
-    #    if bp_num_moves < best_num_moves:
-    #        best_num_moves = bp_num_moves
-    #        best_new_fs = new_fs
-
-    ##if the flies are now 0 before spider 1 moves
-    #if len(best_new_fs[0]) == 0: 
-    #    #move flies from best_new_fs
-    #    best_new_fs_moved = move_flies(best_new_fs, gridsize, flyPolicyType)
-    #    FS_list.append(best_new_fs_moved)
-    #    return (FS_list, num_moves+1)
-    #best_new_fs2 = None
-    #best_num_moves = float("inf")
-    #for a1 in legal_actions(spiders[1], gridsize):
-    #    #assume spider0 did best move in best_new_fs & move on from there
-    #    new_fs2 = move(best_new_fs, a1, True, 1)
-    #    
-    #    #create new FS list to test base policy
-    #    new_fs_list = FS_list.copy()
-    #    new_fs_list.append(new_fs2)
-    #    #find heuristic #moves
-    #    bp_fs_list, bp_num_moves = base_policy(new_fs_list, gridsize, num_moves+2, flyPolicyType)
-    #    if bp_num_moves < best_num_moves:
-    #        best_num_moves = bp_num_moves
-    #        best_new_fs2 = new_fs2
-
-    ##move flies from best_new_fs_2
-    #best_new_fs2_moved = move_flies(best_new_fs2, gridsize, flyPolicyType)
-    #FS_list.append(best_new_fs2_moved)
-    #return multiagent_rollout(FS_list, gridsize, num_moves+2, flyPolicyType)
 
 #method to read in an initial state
 #example commandline: python courtney_code.py --DP_type 2 --output_type 0 --init_type 1 --init_filename sample_init_state.txt
@@ -426,46 +380,87 @@ def random_initial_state(gridsize, spiders, flies):
 
 #FLY MOVING/INTELLIGENCE
 
-#funciton that determines & returns the move for a fly to go to the nearest wall
+#function that determines & returns the move for a fly to go to the nearest wall
 #if in a corner, the chosen move is to stay still (can change this later if we choose)
 def base_policy_fly(gridsize, fly):
     #if in corner, stay still
     if (fly == (0, 0)) | (fly == (gridsize[0]-1, 0)) | (fly == (0, gridsize[1]-1)) | (fly == (gridsize[0]-1, gridsize[1]-1)):
         return Action.STILL
 
-    #get legal actions
-
     best_action = None
     min_wall_distance = max(gridsize[0], gridsize[1])+1
+    legals = legal_actions(fly, gridsize)
 
     #out of legal actions, check to see if each wall is the best & find best action
-    for action in legal_actions(fly, gridsize):
-        if action == Action.LEFT:
-            #distance to left wall is the x coord
-            if (fly[0] < min_wall_distance) & (fly[0] > 0) & (fly[0] < gridsize[0] // 2 + 1):
-                min_wall_distance = fly[0]
-                best_action = action
-        elif action == Action.RIGHT:
-            distance_to_right_wall = gridsize[0] - 1 - fly[0]
-            if (distance_to_right_wall < min_wall_distance) & (distance_to_right_wall > 0) & (distance_to_right_wall < gridsize[0] // 2 + 1):
-                min_wall_distance = distance_to_right_wall
-                best_action = action
-        elif action == Action.UP:
-            #distance to upper wall is the y coord
-            if (fly[1] < min_wall_distance) & (fly[1] > 0) & (fly[1] < gridsize[1] // 2 + 1):
-                min_wall_distance = fly[1]
-                best_action = action
-        elif action == Action.DOWN:
-            distance_to_bottom_wall = gridsize[1] - 1 - fly[1]
-            if (distance_to_bottom_wall < min_wall_distance) & (distance_to_bottom_wall > 0) & (distance_to_bottom_wall < gridsize[1] // 2 + 1):
-                min_wall_distance = distance_to_bottom_wall
-                best_action = action
+    if Action.LEFT in legals:
+        #distance to left wall is the x coord
+        if (fly[0] < min_wall_distance) & (fly[0] > 0) & (fly[0] < gridsize[0] // 2 + 1):
+            min_wall_distance = fly[0]
+            best_action = Action.LEFT
+    if Action.RIGHT in legals:
+        distance_to_right_wall = gridsize[0] - 1 - fly[0]
+        if (distance_to_right_wall < min_wall_distance) & (distance_to_right_wall > 0) & (distance_to_right_wall < gridsize[0] // 2 + 1):
+            min_wall_distance = distance_to_right_wall
+            best_action = Action.RIGHT
+    if Action.UP in legals:
+        #distance to upper wall is the y coord
+        if (fly[1] < min_wall_distance) & (fly[1] > 0) & (fly[1] < gridsize[1] // 2 + 1):
+            min_wall_distance = fly[1]
+            best_action = Action.UP
+    if Action.DOWN in legals:
+        distance_to_bottom_wall = gridsize[1] - 1 - fly[1]
+        if (distance_to_bottom_wall < min_wall_distance) & (distance_to_bottom_wall > 0) & (distance_to_bottom_wall < gridsize[1] // 2 + 1):
+            min_wall_distance = distance_to_bottom_wall
+            best_action = Action.DOWN
+
+    return best_action
+
+#function that determines & returns the move for a fly to avoid closest spider if it's within 3 units (using manhattan distance)
+def avoid_policy_fly(spiders, gridsize, fly):
+    closest_spider = spiders[0]
+    min_dist = manhattan_distance(fly, spiders[0])
+
+    for spider in spiders[1:]:
+        dist = manhattan_distance(spider, fly)
+        if dist < min_dist:
+            min_dist = dist
+            closest_spider = spider
+        #tiebreaker is vertical distance (for funsies let's make it different than the spider's tiebreaker)
+        elif min_dist == dist:
+            #determine which is more vertical
+            if abs(spider[1]-fly[1]) < abs(closest_spider[1] - fly[1]):
+                min_dist = dist
+                closest_spider = spider
+    #be lazy and only move if the spider is w/in 2 units
+    if min_dist > 3:
+        return Action.STILL
+    best_action = None
+    legals = legal_actions(fly, gridsize)
+    if (fly[1] - closest_spider[1]) > 0 and Action.DOWN in legals:
+        best_action = Action.DOWN
+    elif (fly[1] - closest_spider[1]) < 0 and Action.UP in legals:
+        best_action = Action.UP
+    else:
+        if (fly[0] - closest_spider[0]) > 0 and Action.RIGHT in legals:
+            best_action = Action.RIGHT
+        elif (fly[0] - closest_spider[0]) < 0 and Action.LEFT in legals:
+            best_action = Action.LEFT
+        else:
+            #if we're here, then we're pushed up againsta nd edge and in lign with the spider, so use the corner strategy
+            best_action = base_policy_fly(gridsize, fly)
+
+
 
     return best_action
 
 
+
+#function that determines & returns the move for a fly to go to the nearest wall
+def rollout_fly(spiders, gridsize, fly):
+    return None
+
 #function to determine moves based on a specified policy & move the fliessssss BZZZZZZZZZZZZZZZZZZZz
-# flyPolicyType: move flies (0) not at all (1) toward nearest wall - base policy 
+# flyPolicyType: move flies (0) not at all (1) toward nearest wall - base policy (2) avoid closest spider w/in 3 units (3) rollout with avoid policy
 # will likely add more flyPolicyTypes if we want fancier fly intelligence
 def move_flies(FS, gridsize, flyPolicyType):
     #if the flies don't move or aren't there anymore, just return the game state FS as is
@@ -478,7 +473,12 @@ def move_flies(FS, gridsize, flyPolicyType):
     original_fly_length = len(FS[0])
     flyIndex = 0
     while flyIndex < len(new_FS[0]):
-        fly_move = base_policy_fly(gridsize, new_FS[0][flyIndex])
+        if flyPolicyType == 1:
+            fly_move = base_policy_fly(gridsize, new_FS[0][flyIndex])
+        elif flyPolicyType == 2:
+            fly_move = avoid_policy_fly(new_FS[1], gridsize, new_FS[0][flyIndex])
+        elif flyPolicyType == 3:
+            fly_move = rollout_fly(new_FS[1], gridsize, new_FS[0][flyIndex])
         new_FS = move(new_FS, fly_move, False, flyIndex)
         if len(new_FS[0]) < original_fly_length:
             difference = original_fly_length - len(new_FS[0])
@@ -486,7 +486,6 @@ def move_flies(FS, gridsize, flyPolicyType):
             flyIndex -= difference
 
         flyIndex += 1
-
     
     return new_FS
 
@@ -507,7 +506,7 @@ def main():
     parser.add_argument('--init_filename', type=str, required=False, help='If an initial state is specified, read the initial state from this file')
     parser.add_argument('--spiders', type=int, required=False, help='For a random initial state, how many spiders should be on the board?', default=2)
     parser.add_argument('--flies', type=int, required=False, help='For a random initial state, how many flies should be on the board?', default=5)
-    parser.add_argument('--fly_policy_type', type=int, required=False, help='How the flies should move (0) no movement (1) move towards the nearest wall/corner', default=0)
+    parser.add_argument('--fly_policy_type', type=int, required=False, help='How the flies should move (0) no movement (1) move towards the nearest wall/corner (2) move away from the closest spider w/in 3 units or else stay still (3) perform rollout based on spider moves', default=0)
 
     args = parser.parse_args()
 
