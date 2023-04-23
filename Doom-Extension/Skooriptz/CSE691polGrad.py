@@ -25,6 +25,8 @@ def reinforce(game, policy, optimizer, n_training_episodes, max_t, gamma):
     scores_deque = deque(maxlen=100)
     scores = []
     actions = [[True, False, False, False, False, False], [False, True, False, False, False, False], [False, False, True, False, False, False], [False, False, False, True, False, False], [False, False, False, False, True, False], [False, False, False, False, False, True]]
+    #exploration probability value - start high & compound so we start off exploring more
+    explore = 0.9
 
     sleep_time = 1.0 / vzd.DEFAULT_TICRATE  # = 0.028
     for i in range(n_training_episodes):
@@ -61,8 +63,10 @@ def reinforce(game, policy, optimizer, n_training_episodes, max_t, gamma):
             #game.get_game_variable(GameVariable.AMMO2)
 
             # Makes an action (here random one) and returns a reward.
-            action, log_prob = policy.act(state.game_variables)
-            saved_log_probs.append(log_prob)
+            action, log_prob = policy.act((explore), state.game_variables)
+            #if we explore, can't easily save the probability -> log_prob = 0
+            if log_prob != 0:
+                saved_log_probs.append(log_prob)
 
             r = game.make_action(actions[action])
             rewards.append(r)
@@ -85,6 +89,8 @@ def reinforce(game, policy, optimizer, n_training_episodes, max_t, gamma):
             t += 1
             if sleep_time > 0:
                 sleep(sleep_time)
+
+            explore *= 0.9999
 
         
 
@@ -159,7 +165,8 @@ def evaluate_agent(game, n_eval_episodes, policy):
             sectors = state.sectors
 
 
-            action, _ = policy.act(state.game_variables)
+            #we're testing, so don't explore any - explore=0
+            action, _ = policy.act(0.1, state.game_variables)
             r = game.make_action(actions[action])
             total_rewards_ep += r
 
@@ -255,7 +262,7 @@ if __name__ == "__main__":
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     hyperparameters = {
             "h_size": 50,
-            "n_training_episodes": 50,
+            "n_training_episodes": 20,
             "n_evaluation_episodes": 10,
             "max_t": 200,
             "gamma": 1.0,
