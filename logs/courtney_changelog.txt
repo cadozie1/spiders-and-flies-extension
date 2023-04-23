@@ -28,3 +28,18 @@ Changelog 4/8/2023 (adding rollout for fly to escape spiders):
     - fixed image_grid.py because I forgot a second loop when fixing it
     - added an initialization of new_coords in the move() function since it was causing an error
     - deleted extra comments of old, hardencoded code for 2 spiders that I had accidentally left
+
+Changelog 4/13/2023:
+    - modified move to not be adding extra lists when making FS_lists b/c I'm not sure why I had originally done that?
+
+Changelog 4/22/2023:
+    - sf_code stuff:
+        - removed rollout_fly() function as it was not working
+        - added grug and homework picture files and set them to default for fun :)
+        - avoid_policy() still has bug on doing multiagent rollout (just don't use for now)
+    - DOOM stuff:
+        - added policy.py file copied from the policy gradient website for a good NN to do policy gradient
+        - added CSE691polGrad.py file that is just like the base policy except instead does policy gradient as mentioned in the website but adapted to Doom
+        - modified the game vars availabile to include KILLCOUNT, HITCOUNT, HITS_TAKEN, DAMAGECOUNT, DAMAGE_TAKEN, HEALTH, DEAD, POSITION_Y, and POSITION_X so that there is more info that the NN can go off of
+        - will need to modify hyperparameters later on if we want to train it for longer
+
