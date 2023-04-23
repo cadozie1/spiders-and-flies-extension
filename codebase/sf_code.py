@@ -6,6 +6,7 @@ import matplotlib.animation as animation
 import os
 import shutil
 import random
+import time
 from enum import Enum
 
 #an enum that defines each of the actions a spider can take
@@ -63,6 +64,9 @@ def manhattan_x(coordinates1, coordinates2):
 #a function that moves a given spider/fly at a given index by a certain action and updates the FS gamestate
 # isASpider: True -> move a spider; False -> move a fly
 def move(FS, action, isASpider, index):
+    if action == None:
+        print("ERROR: Action type cannot be none.")
+        exit(1)
     moving_list = [] #the list of spiders/flies for the spider/fly we're moving
     flies = FS[0].copy()
     spiders = FS[1].copy()
@@ -321,25 +325,37 @@ def multiagent_rollout(FS_list, gridsize, num_moves, flyPolicyType):
 
 
 #method to read in an initial state
-#example commandline: python courtney_code.py --DP_type 2 --output_type 0 --init_type 1 --init_filename sample_init_state.txt
+#example commandline: python courtney_code.py --DP_type 2 --output_type 0 --init_type 1 --init_filename sample_init_state.txt --gridxy 16
 def get_initial_state_from_file(filename):
     flies_init = []
     spiders_init = []
     f = open(filename, "r")
 
-    #split each fly by space and subsequent line spider by space
-    flies = f.readline().split(' ')
-    spiders = f.readline().split(' ')
+
+    #remove extra brackets/parentheses & split each fly by space and subsequent line spider by space
+    flies_line = f.readline()
+    flies_line = flies_line.replace('[(', '')
+    flies_line = flies_line.replace(')]', '')
+    flies_line = flies_line.replace('(', '')
+    flies_line = flies_line.replace('\n', '')
+    flies = flies_line.split('), ')
+    spiders_line = f.readline()
+    spiders_line = spiders_line.replace('[(', '')
+    spiders_line = spiders_line.replace(')]', '')
+    spiders_line = spiders_line.replace('(', '')
+    spiders_line = spiders_line.replace('\n', '')
+    spiders = spiders_line.split('), ')
+
 
     #split x and y coordinates by comma
     for fly in flies:
-        (str_x, str_y) = fly.split(',')
+        (str_x, str_y) = fly.split(', ')
         x = int(str_x)
         y = int(str_y)
         flies_init.append((x, y))
 
     for spider in spiders:
-        (str_x, str_y) = spider.split(',')
+        (str_x, str_y) = spider.split(', ')
         x = int(str_x)
         y = int(str_y)
         spiders_init.append((x, y))
@@ -386,7 +402,7 @@ def random_initial_state(gridsize, spiders, flies):
 #if in a corner, the chosen move is to stay still (can change this later if we choose)
 def base_heuristic_fly(gridsize, fly):
     #if in corner, stay still
-    if (fly == (0, 0)) | (fly == (gridsize[0]-1, 0)) | (fly == (0, gridsize[1]-1)) | (fly == (gridsize[0]-1, gridsize[1]-1)):
+    if (fly == (0, 0)) or (fly == (gridsize[0]-1, 0)) or (fly == (0, gridsize[1]-1)) or (fly == (gridsize[0]-1, gridsize[1]-1)):
         return Action.STILL
 
     best_action = None
@@ -414,6 +430,10 @@ def base_heuristic_fly(gridsize, fly):
         if (distance_to_bottom_wall < min_wall_distance) & (distance_to_bottom_wall > 0) & (distance_to_bottom_wall < gridsize[1] // 2 + 1):
             min_wall_distance = distance_to_bottom_wall
             best_action = Action.DOWN
+
+    #if som
+    if best_action == None:
+        print(fly)
 
     return best_action
 
@@ -476,6 +496,7 @@ def move_flies(FS, gridsize, flyPolicyType, num_moves):
     while flyIndex < len(new_FS[0]):
         if flyPolicyType == 1:
             fly_move = base_heuristic_fly(gridsize, new_FS[0][flyIndex])
+            print(fly_move)
         elif flyPolicyType == 2:
             fly_move = avoid_policy_fly(new_FS[1], gridsize, new_FS[0][flyIndex])
         else:
@@ -531,13 +552,13 @@ def main():
             #initial game board
             flies_init = [(8, 2), (2, 3), (4, 6), (1, 7), (8, 8)]
             spiders_init = [(6, 0), (6, 0)]
-    print(flies_init)
-    print(spiders_init)
 
     
+    print(flies_init)
+    print(spiders_init)
     FS_list = [(flies_init, spiders_init)]
     num_moves = 0
-
+    start_time = time.time() 
     match args.DP_type:
         case 0: 
             FS_list, num_moves = base_policy(FS_list, gridsize, 0, flyPolicyType)
@@ -549,12 +570,15 @@ def main():
             FS_list, num_moves = multiagent_rollout(FS_list, gridsize, 0, flyPolicyType)
             print("----------Multiagent Rollout w/ Manhattan Heuristic One Lookahead----------")
 
+    end_time = time.time()
+    total_time = end_time - start_time
+    print(f'Time taken: {total_time:.4f}s')
     match args.output_type:
         case 0: print_output(FS_list)
         case 1: plot_animate(FS_list, gridsize, args.GIF_name)
         case 2: plot_images(FS_list, gridsize, args.image_folder)
 
-    print("Number of moves needed:", num_moves)
+    print("Number of moves needed: ", num_moves)
 
 if __name__ == "__main__":
     main()

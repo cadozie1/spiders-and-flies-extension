@@ -14,11 +14,11 @@ def determine_image(coordinates, FS):
                 for spiderIndex2 in range(spiderIndex1+1, len(spiders)):
                     if spiders[spiderIndex1] == spiders[spiderIndex2]:
                         return "spider2.png"
-            return "grug.jpg"
+            return "spider.png"
         else:
-            return "grug.jpg"
+            return "spider.png"
     elif coordinates in flies:
-        return "homework.jpeg"
+        return "fly.png"
     else:
         return "white.png"
 
