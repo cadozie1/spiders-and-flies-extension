@@ -46,3 +46,6 @@ Changelog 4/22/2023:
 
 Changelog 4/23/2023:
     - added explore variable for how much we want to explore in CSE691polGrad.py so the agent will not just sit there doing one action the whole time
+    - modified sf_code for initial random state to have same format in the file to where you can copy from previous run
+    - added some more initial state files
+    - separated training & evaluation and tried training for 1000 episodes (honestly performed worse, perhaps cause of less exploration? I think randomness really is doing better for some odd reason)

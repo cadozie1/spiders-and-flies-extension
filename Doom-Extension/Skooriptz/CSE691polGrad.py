@@ -19,22 +19,23 @@ import vizdoom as vzd
 import torch
 import policy 
 from collections import deque
+import pickle
 
 #policy gradient taken and adapted from https://huggingface.co/deep-rl-course/unit4/hands-on?fw=pt
-def reinforce(game, policy, optimizer, n_training_episodes, max_t, gamma):
+def reinforce(game, policy, optimizer, n_training_episodes, max_t, gamma, print_every):
     scores_deque = deque(maxlen=100)
     scores = []
     actions = [[True, False, False, False, False, False], [False, True, False, False, False, False], [False, False, True, False, False, False], [False, False, False, True, False, False], [False, False, False, False, True, False], [False, False, False, False, False, True]]
     #exploration probability value - start high & compound so we start off exploring more
     explore = 0.9
 
-    sleep_time = 1.0 / vzd.DEFAULT_TICRATE  # = 0.028
+    #sleep_time = 1.0 / vzd.DEFAULT_TICRATE  # = 0.028
     for i in range(n_training_episodes):
 
         saved_log_probs = []
         rewards = []
 
-        print("Episode #" + str(i + 1))
+       # print("Episode #" + str(i + 1))
 
         # Starts a new episode. It is not needed right after init() but it doesn't cost much. At least the loop is nicer.
         game.new_episode() 
@@ -50,7 +51,7 @@ def reinforce(game, policy, optimizer, n_training_episodes, max_t, gamma):
             # Which consists of:
             n = state.number
             vars = state.game_variables
-            screen_buf = state.screen_buffer
+           # screen_buf = state.screen_buffer
             depth_buf = state.depth_buffer
             labels_buf = state.labels_buffer
             automap_buf = state.automap_buffer
@@ -81,14 +82,14 @@ def reinforce(game, policy, optimizer, n_training_episodes, max_t, gamma):
             # r = game.get_last_reward()
 
             # Prints state's game variables and reward.
-            print("State #" + str(n))
-            print("Game variables:", vars)
-            print("Reward:", r)
-            print("=====================")
+            #print("State #" + str(n))
+            #print("Game variables:", vars)
+            #print("Reward:", r)
+            #print("=====================")
 
             t += 1
-            if sleep_time > 0:
-                sleep(sleep_time)
+            #if sleep_time > 0:
+            #    sleep(sleep_time)
 
             explore *= 0.9999
 
@@ -123,64 +124,65 @@ def reinforce(game, policy, optimizer, n_training_episodes, max_t, gamma):
 
 
         # Check how the episode went.
-        print("Episode finished.")
-        print("Total reward:", game.get_total_reward())
-        print("Average Score: {:.2f}".format(i, np.mean(scores_deque)))
-        print("************************")
+        if i % print_every == 0:
+            print("Episode ", str(i+1), " finished.")
+            print("Total reward:", game.get_total_reward())
+            print("Average Score: {:.2f}".format(i, np.mean(scores_deque)))
+            print("************************")
     # It will be done automatically anyway but sometimes you need to do it in the middle of the program...
 
     return scores
-
-def evaluate_agent(game, n_eval_episodes, policy):
-    """
-    Evaluate the agent for ``n_eval_episodes`` episodes and returns average reward and std of reward.
-    :param n_eval_episodes: Number of episode to evaluate the agent
-    :param policy: The Reinforce agent
-    """
-    actions = [[True, False, False, False, False, False], [False, True, False, False, False, False], [False, False, True, False, False, False], [False, False, False, True, False, False], [False, False, False, False, True, False], [False, False, False, False, False, True]]
-
-    sleep_time = 1.0 / vzd.DEFAULT_TICRATE  # = 0.028
-    episode_rewards = []
-    for i in range(n_eval_episodes):
-        total_rewards_ep = 0
-        print("Episode #" + str(i + 1))
-
-        # Starts a new episode. It is not needed right after init() but it doesn't cost much. At least the loop is nicer.
-        game.new_episode() 
-
-        while not game.is_episode_finished():
-
-            # Gets the state
-            state = game.get_state()
-
-            # Which consists of:
-            n = state.number
-            vars = state.game_variables
-            screen_buf = state.screen_buffer
-            depth_buf = state.depth_buffer
-            labels_buf = state.labels_buffer
-            automap_buf = state.automap_buffer
-            labels = state.labels
-            objects = state.objects
-            sectors = state.sectors
-
-
-            #we're testing, so don't explore any - explore=0
-            action, _ = policy.act(0.1, state.game_variables)
-            r = game.make_action(actions[action])
-            total_rewards_ep += r
-
-            if sleep_time > 0:
-                sleep(sleep_time)
-
-
-        episode_rewards.append(total_rewards_ep)
-    mean_reward = np.mean(episode_rewards)
-    std_reward = np.std(episode_rewards)
-
-    return mean_reward, std_reward
-
-if __name__ == "__main__":
+#
+#def evaluate_agent(game, n_eval_episodes, policy):
+#    """
+#    Evaluate the agent for ``n_eval_episodes`` episodes and returns average reward and std of reward.
+#    :param n_eval_episodes: Number of episode to evaluate the agent
+#    :param policy: The Reinforce agent
+#    """
+#    actions = [[True, False, False, False, False, False], [False, True, False, False, False, False], [False, False, True, False, False, False], [False, False, False, True, False, False], [False, False, False, False, True, False], [False, False, False, False, False, True]]
+#
+#    sleep_time = 1.0 / vzd.DEFAULT_TICRATE  # = 0.028
+#    episode_rewards = []
+#    for i in range(n_eval_episodes):
+#        total_rewards_ep = 0
+#        print("Episode #" + str(i + 1))
+#
+#        # Starts a new episode. It is not needed right after init() but it doesn't cost much. At least the loop is nicer.
+#        game.new_episode() 
+#
+#        while not game.is_episode_finished():
+#
+#            # Gets the state
+#            state = game.get_state()
+#
+#            # Which consists of:
+#            n = state.number
+#            vars = state.game_variables
+#            screen_buf = state.screen_buffer
+#            depth_buf = state.depth_buffer
+#            labels_buf = state.labels_buffer
+#            automap_buf = state.automap_buffer
+#            labels = state.labels
+#            objects = state.objects
+#            sectors = state.sectors
+#
+#
+#            #we're testing, so don't explore any - explore=0
+#            action, _ = policy.act(0.1, state.game_variables)
+#            r = game.make_action(actions[action])
+#            total_rewards_ep += r
+#
+#            if sleep_time > 0:
+#                sleep(sleep_time)
+#
+#
+#        episode_rewards.append(total_rewards_ep)
+#    mean_reward = np.mean(episode_rewards)
+#    std_reward = np.std(episode_rewards)
+#
+#    return mean_reward, std_reward
+#
+def start_game(window_visible):
     # Create DoomGame instance. It will run the game and communicate with you.
     game = vzd.DoomGame()
 
@@ -195,12 +197,14 @@ if __name__ == "__main__":
 
     # Sets map to start (scenario .wad files can contain many maps).
     game.set_doom_map("map01")
-
+    
     # Sets resolution. Default is 320X240
     game.set_screen_resolution(vzd.ScreenResolution.RES_640X480)
 
     # Sets the screen buffer format. Not used here but now you can change it. Default is CRCGCB.
     game.set_screen_format(vzd.ScreenFormat.RGB24)
+
+    game.set_ticrate(140)
 
     # Enables depth buffer.
     game.set_depth_buffer_enabled(True)
@@ -218,6 +222,7 @@ if __name__ == "__main__":
     game.set_sectors_info_enabled(True)
 
     game.set_available_buttons([vzd.Button.TURN_LEFT, vzd.Button.TURN_RIGHT, vzd.Button.MOVE_FORWARD, vzd.Button.MOVE_LEFT, vzd.Button.MOVE_RIGHT, vzd.Button.ATTACK])
+
     # Buttons that will be used can be also checked by:
     print("Available buttons:", [b.name for b in game.get_available_buttons()])
 
@@ -228,7 +233,6 @@ if __name__ == "__main__":
     # Or:
     game.set_available_game_variables([vzd.GameVariable.AMMO2, vzd.GameVariable.SELECTED_WEAPON, vzd.GameVariable.KILLCOUNT, vzd.GameVariable.HITCOUNT, vzd.GameVariable.HITS_TAKEN, vzd.GameVariable.DAMAGECOUNT, vzd.GameVariable.DAMAGE_TAKEN, vzd.GameVariable.HEALTH, vzd.GameVariable.DEAD, vzd.GameVariable.POSITION_Y, vzd.GameVariable.POSITION_Z])
     print("Available game variables:", [v.name for v in game.get_available_game_variables()])
-
     # Causes episodes to finish after 200 tics (actions)
     game.set_episode_timeout(200)
 
@@ -236,7 +240,7 @@ if __name__ == "__main__":
     game.set_episode_start_time(10)
 
     # Makes the window appear (turned on by default)
-    game.set_window_visible(True)
+    game.set_window_visible(window_visible)
 
     #game.set_sound_enabled(True)
     # Because of some problems with OpenAL on Ubuntu 20.04, we keep this line commented,
@@ -254,36 +258,49 @@ if __name__ == "__main__":
     # Initialize the game. Further configuration won't take any effect from now on.
     game.init()
 
-    # Run this many episodes
-    episodes = 1
+    return game
 
+if __name__ == "__main__":
+    game = start_game(False)
+    
     actions = [[True, False, False, False, False, False], [False, True, False, False, False, False], [False, False, True, False, False, False], [False, False, False, True, False, False], [False, False, False, False, True, False], [False, False, False, False, False, True]]
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     hyperparameters = {
-            "h_size": 50,
-            "n_training_episodes": 20,
-            "n_evaluation_episodes": 10,
+            "h_size": 300,
+            "n_training_episodes": 1000,
             "max_t": 200,
             "gamma": 1.0,
             "lr": 1e-2,
             "state_space": 11,
             "action_space": 6,
+            "print_every": 5,
             }
-    doom_policy = policy.Policy(
-            hyperparameters["state_space"],
-            hyperparameters["action_space"],
-            hyperparameters["h_size"],
-            ).to(device)
+    if os.path.exists("./trained_policy.pkl"):
+
+        with open("trained_policy.pkl", 'rb') as file:
+            doom_policy = pickle.load(file)
+    else:
+        doom_policy = policy.Policy(
+                hyperparameters["state_space"],
+                hyperparameters["action_space"],
+                hyperparameters["h_size"],
+                ).to(device)
     optimizer = torch.optim.Adam(doom_policy.parameters(), lr=hyperparameters["lr"])
 
 
-    scores = reinforce(game, doom_policy, optimizer, hyperparameters["n_training_episodes"], hyperparameters["max_t"], hyperparameters["gamma"],) 
-
-    mean_reward, std_reward = evaluate_agent(game, 
-    hyperparameters["n_evaluation_episodes"], doom_policy 
-    )
-    print("Mean reward: ", mean_reward, "Standard Deviation: ", std_reward)
-
+    scores = reinforce(game, doom_policy, optimizer, hyperparameters["n_training_episodes"], hyperparameters["max_t"], hyperparameters["gamma"],hyperparameters["print_every"]) 
     game.close()
+
+    
+    with open("trained_policy.pkl", 'wb') as file:
+        pickle.dump(doom_policy, file)
+
+#    second_game = start_game(True)
+#    mean_reward, std_reward = evaluate_agent(game, 
+#    hyperparameters["n_evaluation_episodes"], doom_policy 
+#    )
+#    print("Mean reward: ", mean_reward, "Standard Deviation: ", std_reward)
+#
+#    game.close()
 

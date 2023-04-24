@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
     # Sets path to additional resources wad file which is basically your scenario wad.
     # If not specified default maps will be used and it's pretty much useless... unless you want to play good old Doom.
-    game.set_doom_scenario_path(os.path.join(vzd.scenarios_path, "/home/mommymythra/Documents/spiders-and-flies-extension/Doom-Extension/Skooriptz/CSE691.wad"))
+    game.set_doom_scenario_path(os.path.join(vzd.scenarios_path, "/home/quartz/spiders-and-flies-extension/Doom-Extension/Skooriptz/CSE691.wad"))
 
     # Sets map to start (scenario .wad files can contain many maps).
     game.set_doom_map("map01")
