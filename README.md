@@ -8,4 +8,6 @@ Additionally, we attempt to adapt multiagent rollout to DOOM, but found the dyna
 ## Results
 Overall, multiagent rollout does perform with comparable accuracy to ordinary rollout with major computational improvement.
 
-![](https://github.com/cadozie1/spiders-and-flies-extension/blob/main/courtney_code/animation.gif)
+[Project Tasks Link](https://docs.google.com/document/d/1HA7vxDIaIeDKjaJWgApk73jEFhjrQXzXQiP5bSoLbmI/edit?usp=sharing)
+
+![](https://github.com/cadozie1/spiders-and-flies-extension/blob/main/codebase/animation.gif)

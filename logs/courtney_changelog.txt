@@ -1,0 +1,51 @@
+Changes made to courtneys-testing-zone will be listed here before merging to main:
+-------------------------------------------------------------------------------------------------------------------------
+
+Changelog 3/30/2023:
+    - updated README to include Google Drive Project Tasks Link
+    - updated README to reflect new animation.gif in codebase/
+    - updated move_spider() function to be a fly/spider move() function based on fly/spider index
+    - changed every instance of move_spider() to become move() with additional 'True' parameter of whether it is a spider
+    - updated legal_actions() function names from spider_coords to just coords for implementation with flies
+    - added move_flies() function that will move all of the flies based on what kind of policy type (0 for not moving, 1 for base policy heading to nearest wall) to move by
+    - added base_policy_fly() function to determine the best action based on the nearest wall for the fly to move to
+    - added move_flies() to base_policy(), ordinary_rollout(), multiagent_rollout(), and updated those functions to have flyPolicyType for what policy the flies are supposed to move by
+    - added a commandline argument --fly_policy_type (0) for no movement (1) for running toward the nearest wall/staying in a corner, default 0
+
+
+Changelog 4/5/2023-4/6/2023 (increasing # of spiders):
+    - updated base_policy function to process any number of spiders based on the length of spiders in the most recent game state (will work even if spiders can die)
+    - added ordinary_rollout_best_FS function that recursively performs the nested for loop part of ordinary rollout to find the best FS given the heursitic (base policy) and returns that best FS to the ordinary_rollout function, which then either terminates or continues rollout for the next game state
+    - updated ordinary_rollout to remove nested for loops & call recursive function ordinary_rollout_best_FS instead
+    - updated multiagent_rollout to include a for loop for each spider & run each one after the other
+    - updated image_grid.py to check duplicates based on the spiders length so we can also run with only 1 spider :)
+
+Changelog 4/8/2023 (adding rollout for fly to escape spiders):
+    - added third and fourth fly policy types: avoid policy (avoid the spiders) with flyPolicyType 2, and rollout with flyPolicyType 3 - modified move_flies and added argument help for those value
+    - added avoid_policy_fly() function that determines what move is best for avoiding landing on a spider
+    - added rollout_fly() function that uses the avoid_policy_fly as its base policy & performs rollout on that
+    - modified base_policy_fly to be written a little less weird/redundant
+    - fixed image_grid.py because I forgot a second loop when fixing it
+    - added an initialization of new_coords in the move() function since it was causing an error
+    - deleted extra comments of old, hardencoded code for 2 spiders that I had accidentally left
+
+Changelog 4/13/2023:
+    - modified move to not be adding extra lists when making FS_lists b/c I'm not sure why I had originally done that?
+
+Changelog 4/22/2023:
+    - sf_code stuff:
+        - removed rollout_fly() function as it was not working
+        - added grug and homework picture files and set them to default for fun :)
+        - avoid_policy() still has bug on doing multiagent rollout (just don't use for now)
+    - DOOM stuff:
+        - added policy.py file copied from the policy gradient website for a good NN to do policy gradient
+        - added CSE691polGrad.py file that is just like the base policy except instead does policy gradient as mentioned in the website but adapted to Doom
+        - modified the game vars availabile to include KILLCOUNT, HITCOUNT, HITS_TAKEN, DAMAGECOUNT, DAMAGE_TAKEN, HEALTH, DEAD, POSITION_Y, and POSITION_X so that there is more info that the NN can go off of
+        - will need to modify hyperparameters later on if we want to train it for longer
+
+
+Changelog 4/23/2023:
+    - added explore variable for how much we want to explore in CSE691polGrad.py so the agent will not just sit there doing one action the whole time
+    - modified sf_code for initial random state to have same format in the file to where you can copy from previous run
+    - added some more initial state files
+    - separated training & evaluation and tried training for 1000 episodes (honestly performed worse, perhaps cause of less exploration? I think randomness really is doing better for some odd reason)
